@@ -1,1 +1,6 @@
-[{"title":"test"},{"title":"error"},{"title":"biik12"}]
+[{
+    "title": "Book1",
+    "imageUrl": "https://media.istockphoto.com/photos/new-year-2022-creative-design-concept-with-books-shelf-picture-id1332856100?s=612x612",
+    "description": "5.00",
+    "price": "this is great"
+}]
