@@ -2,6 +2,9 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const sendgridTransport = require('nodemailer-sendgrid-transport');
+const {
+	validationResult
+} = require('express-validator/check')
 
 const User = require('../models/user');
 
@@ -37,13 +40,25 @@ exports.getSignup = (req, res, next) => {
 	res.render('auth/signup', {
 		path: '/signup',
 		pageTitle: 'Signup',
-		errorMessage: message
+		errorMessage: message, 
+		oldInput: { email: '', password: '', confirmPassword: ''}
+
 	});
 };
 
 exports.postLogin = (req, res, next) => {
 	const email = req.body.email;
 	const password = req.body.password;
+	const errors = validationResult(req);
+	if (!errors.isEmpty){
+		return res.status(422).render('auth/login', {
+			path: '/login',
+			pageTitle: 'Login',
+			errorMessage: errors.array()[0].msg,
+			oldInput: { email: email, password: password}
+		});
+
+	}
 	User.findOne({
 			email: email
 		})
@@ -78,15 +93,19 @@ exports.postSignup = (req, res, next) => {
 	const email = req.body.email;
 	const password = req.body.password;
 	const confirmPassword = req.body.confirmPassword;
-	User.findOne({
-			email: email
-		})
-		.then((userDoc) => {
-			if (userDoc) {
-				req.flash('error', 'E-mail exists already please pick a new');
-				return res.redirect('/signup');
-			}
-			return bcrypt
+	const errors = validationResult(req);
+	if (!errors.isEmpty()) {
+		console.log(errors.array());
+		return res.status(422).render('auth/signup', {
+			path: '/signup',
+			pageTitle: 'Signup',
+			errorMessage: errors.array()[0].msg,
+			oldInput: { email: email, password: password, confirmPassword: req.body.confirmPassword}
+
+		});
+	}
+	
+			 bcrypt
 				.hash(password, 12)
 				.then((hashedPassword) => {
 					const user = new User({
@@ -109,8 +128,7 @@ exports.postSignup = (req, res, next) => {
 				})
 				.catch((err) => {
 					console.log(err);
-				});
-		})
+				})
 		.catch((err) => {
 			console.log(err);
 		});
@@ -224,12 +242,12 @@ exports.postNewPassword = (req, res, next) => {
 		return bcrypt.hash(newPassword, 12);
 
 	}).then(hashedPassword => {
-		resetUser.password =hashedPassword;
+		resetUser.password = hashedPassword;
 		resetUser.resetToken = undefined;
 		resetUser.resetTokenExpiration = undefined;
 		return resetUser.save();
 
-	}).then( result => {
+	}).then(result => {
 		res.redirect('/login');
 	}).catch(err => {
 		console.log(err);
